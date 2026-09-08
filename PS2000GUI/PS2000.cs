@@ -14,6 +14,7 @@ namespace PS2000GUI
         public string PortName { get; private set; } = "";
 
         public float NominalVoltage { get; private set; }
+        public float NominalCurrent { get; private set; }
         public bool IsOffline { get; private set; }
 
         // état de l'appareil simulé, utilisé seulement hors ligne
@@ -37,6 +38,7 @@ namespace PS2000GUI
                     _port = port;
 
                     NominalVoltage = ReadFloat(2);   // sonde la liaison ET donne la valeur nominale
+                    NominalCurrent = ReadFloat(3);
                     PortName = name;
                     return;
                 }
@@ -49,6 +51,7 @@ namespace PS2000GUI
 
             IsOffline = true;
             NominalVoltage = 84f;
+            NominalCurrent = 3f;
             PortName = "OFFLINE";
         }
 
@@ -156,6 +159,7 @@ namespace PS2000GUI
             1 => Encoding.ASCII.GetBytes("SIMULATED"),
             6 => Encoding.ASCII.GetBytes("06230210"),
             2 => [0x42, 0xA8, 0x00, 0x00],                              // 84.0f en big-endian
+            3 => [0x40, 0x40, 0x00, 0x00],                              // 3.0f en big-endian
             50 => [(byte)(_simSetpointRaw >> 8), (byte)_simSetpointRaw],
             71 => SimulatedActualValues(),
             _ => throw new IOException($"Simulated device has no object {obj}")
