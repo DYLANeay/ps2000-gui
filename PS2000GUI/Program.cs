@@ -20,7 +20,7 @@ internal class Program
 
         // get voltage
 
-        //SD = MessageType + CastType + Direction + Length
+        //SD = MessageType + CastType + Direction + Length (returns 6 bytes)
         int SDHex = (int)0x40 + (int)0x20 + 0x10 + 5; //6-1 ref spec 3.1.1
         byte SD = Convert.ToByte(SDHex.ToString(), 10);
 
