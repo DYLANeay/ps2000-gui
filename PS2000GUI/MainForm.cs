@@ -115,6 +115,8 @@ public class MainForm : Form
 
         _timer.Interval = 500;
         _timer.Tick += OnTick;
+
+        UpdateEnabled();   // grisé dès l'ouverture, avant le premier tic
     }
 
     // OnLoad et non le constructeur : le balayage des ports peut durer une seconde
@@ -179,6 +181,8 @@ public class MainForm : Form
             _btnRemote.Text = _remoteOn ? "Turn remote OFF" : "Turn remote ON";
             _btnOutput.Text = _outputOn ? "Turn output OFF" : "Turn output ON";
 
+            UpdateEnabled();
+
             // état brut affiché pour vérifier les bits au labo depuis la face avant
             _lblStatus.Text = $"{_connText} — status 0x{d[0]:X2}{d[1]:X2}";
         }
@@ -188,6 +192,14 @@ public class MainForm : Form
             _timer.Stop();
             _lblStatus.Text = ex.Message;
         }
+    }
+
+    // la sortie et la consigne exigent le contrôle à distance (§3.1.5) : on grise les
+    // commandes au lieu de laisser l'appareil répondre erreur 0x09
+    void UpdateEnabled()
+    {
+        // Get reste actif : lire l'objet 50 est autorisé même hors contrôle à distance
+        _btnOutput.Enabled = _numSetpoint.Enabled = _btnSet.Enabled = _remoteOn;
     }
 
     // évite de répéter le même try/catch dans les quatre gestionnaires
