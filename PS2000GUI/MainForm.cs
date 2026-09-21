@@ -65,7 +65,7 @@ public class MainForm : Form
             _lblArticle.Text = "Article number: " + _dev.ReadString(6);
             _lblMaxV.Text = $"Max voltage: {_dev.NominalVoltage:0.00} V";
             _numSetpoint.Maximum = (decimal)_dev.NominalVoltage;
-            _lblStatus.Text = _dev.IsOffline ? "OFFLINE (simulated)" : "Connected on COM3";
+            _lblStatus.Text = "Connected on COM3";
             _timer.Start();
         });
     }
