@@ -19,19 +19,23 @@ public class PS2000
     byte[] Send(byte sd, byte obj, byte[] data)
     {
         // trame : SD, DN (toujours 0), OBJ, DATA, puis la somme des octets sur 2 octets (poids fort d'abord)
-        byte[] t = [sd, 0, obj, .. data, 0, 0];
-        int sum = t.Sum(b => (int)b);
-        t[^2] = (byte)(sum >> 8);
-        t[^1] = (byte)sum;
+        byte[] telegram = [sd, 0, obj, .. data, 0, 0];
+        int checksum = telegram.Sum(b => (int)b);
+        int lastIndex = telegram.Length - 1;
+        telegram[lastIndex - 1] = (byte)(checksum >> 8);   // poids fort
+        telegram[lastIndex] = (byte)checksum;              // poids faible
 
         _port!.DiscardInBuffer();
-        _port.Write(t, 0, t.Length);
+        _port.Write(telegram, 0, telegram.Length);
 
         // les 4 bits bas du SD de la réponse donnent la longueur des données moins 1
         int respSd = _port.ReadByte();
-        byte[] frame = new byte[3 + (respSd & 0x0F) + 1 + 2];
+        int dataLen = (respSd & 0x0F) + 1;
+        int frameLen = 3 + dataLen + 2;   // SD + DN + OBJ + DATA + checksum (2 octets)
+
+        byte[] frame = new byte[frameLen];
         frame[0] = (byte)respSd;
-        _port.BaseStream.ReadExactly(frame, 1, frame.Length - 1);
+        _port.BaseStream.ReadExactly(frame, 1, frameLen - 1);
 
         Thread.Sleep(50);   // l'appareil n'aime pas les requêtes trop rapprochées
         return frame;
