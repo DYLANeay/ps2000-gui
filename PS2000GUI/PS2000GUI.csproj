@@ -16,4 +16,7 @@
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PS2000Lib\PS2000Lib.csproj" />
+  </ItemGroup>
 </Project>
