@@ -1,3 +1,5 @@
+using PS2000Lib;
+
 namespace PS2000GUI;
 
 public class MainForm : Form
