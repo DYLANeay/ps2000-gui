@@ -1,7 +1,7 @@
 using System.IO.Ports;
 using System.Text;
 
-namespace PS2000GUI;
+namespace PS2000Lib;
 
 public class PS2000
 {
