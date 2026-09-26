@@ -3,7 +3,7 @@ using System.Text;
 
 namespace PS2000Lib;
 
-public class PS2000
+public class PS2000 : IPowerSupply
 {
     SerialPort? _port;
 
