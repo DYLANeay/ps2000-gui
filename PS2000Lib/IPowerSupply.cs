@@ -6,6 +6,7 @@ public interface IPowerSupply
     string DeviceType { get; }
     string SerialNumber { get; }
     string ArticleNumber { get; }
+    string PortName { get; }
 
     void Connect();
     PsuStatus ReadStatus();

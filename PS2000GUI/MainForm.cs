@@ -4,7 +4,7 @@ namespace PS2000GUI;
 
 public class MainForm : Form
 {
-    readonly IPowerSupply _powerSupply = new PS2000();
+    readonly IPowerSupply _powerSupply = PowerSupplyFactory.Create();
     readonly System.Windows.Forms.Timer _timer = new() { Interval = 500 };
     readonly FlowLayoutPanel _panel = new()
     {
@@ -90,7 +90,7 @@ public class MainForm : Form
             _lblArticle.Text = "Article number: " + _powerSupply.ArticleNumber;
             _lblMaxV.Text = $"Max voltage: {_powerSupply.NominalVoltage:0.00} V";
             _numSetpoint.Maximum = (decimal)_powerSupply.NominalVoltage;
-            _lblStatus.Text = "Connected on COM3";
+            _lblStatus.Text = "Connected on " + _powerSupply.PortName;
             _timer.Start();
         });
     }
