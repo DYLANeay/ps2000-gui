@@ -3,7 +3,7 @@ using System.Text;
 
 namespace PS2000Lib;
 
-public class PS2000 : IPowerSupply
+internal class PS2000 : IPowerSupply
 {
     SerialPort? _port;
 
@@ -11,17 +11,40 @@ public class PS2000 : IPowerSupply
     public string DeviceType { get; private set; } = "";
     public string SerialNumber { get; private set; } = "";
     public string ArticleNumber { get; private set; } = "";
+    public string PortName { get; private set; } = "";
 
+    // en USB l'appareil apparaît comme un port COM virtuel dont le numéro change selon le PC :
+    // on essaie chaque port, le bon est celui où un PS2000 répond
     public void Connect()
     {
-        _port = new SerialPort("COM3", 115200, Parity.None, 8, StopBits.One) { ReadTimeout = 500 };
-        _port.Open();
-        NominalVoltage = ReadFloat(2); // à lire en premier, toutes les valeurs en % en dépendent
+        foreach (string portName in SerialPort.GetPortNames())
+        {
+            _port = new SerialPort(portName, 115200, Parity.None, 8, StopBits.One)
+            {
+                ReadTimeout = 500,
+            };
+            try
+            {
+                _port.Open();
+                NominalVoltage = ReadFloat(2); // à lire en premier, toutes les valeurs en % en dépendent
 
-        // objets 0, 1, 6 : chaînes ASCII de 16 octets, fixes pour l'appareil, lues une seule fois
-        DeviceType = ReadString(0);
-        SerialNumber = ReadString(1);
-        ArticleNumber = ReadString(6);
+                // objets 0, 1, 6 : chaînes ASCII de 16 octets, fixes pour l'appareil, lues une seule fois
+                DeviceType = ReadString(0);
+                SerialNumber = ReadString(1);
+                ArticleNumber = ReadString(6);
+                PortName = portName;
+                return;
+            }
+            catch (Exception ex)
+                when (ex is IOException or TimeoutException or UnauthorizedAccessException)
+            {
+                // port occupé ou pas de PS2000 derrière : on le libère et on passe au suivant
+                _port.Close();
+            }
+        }
+
+        _port = null;
+        throw new IOException("No PS2000 found on any serial port");
     }
 
     private byte[] Send(byte sd, byte obj, byte[] data)
