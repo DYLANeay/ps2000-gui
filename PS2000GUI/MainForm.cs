@@ -79,7 +79,7 @@ public class MainForm : Form
         UpdateEnabled();
     }
 
-    // sans remote l'appareil refuse les écritures (erreur 0x09), donc on grise
+    // sans remote l'appareil refuse les écritures, donc on grise
     void UpdateEnabled() => _btnOutput.Enabled = _btnSet.Enabled = _numSetpoint.Enabled = _remoteOn;
 
     // une erreur série s'affiche en bas au lieu de faire planter l'app

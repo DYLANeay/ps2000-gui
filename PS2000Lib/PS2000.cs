@@ -24,7 +24,7 @@ public class PS2000
         ArticleNumber = ReadString(6);
     }
 
-    byte[] Send(byte sd, byte obj, byte[] data)
+    private byte[] Send(byte sd, byte obj, byte[] data)
     {
         // trame : SD, DN (toujours 0), OBJ, DATA, puis la somme des octets sur 2 octets (poids fort d'abord)
         byte[] telegram = [sd, 0, obj, .. data, 0, 0];
@@ -49,7 +49,7 @@ public class PS2000
         return frame;
     }
 
-    public byte[] Query(byte obj, int expectLen)
+    private byte[] Query(byte obj, int expectLen)
     {
         // 0x70 = requête vers l'appareil, 0xF0 plus bas = écriture
         byte[] frame = Send((byte)(0x70 | (expectLen - 1)), obj, []);
@@ -60,7 +60,7 @@ public class PS2000
         return frame[3..^2];
     }
 
-    public void Write(byte obj, byte[] data)
+    private void Write(byte obj, byte[] data)
     {
         byte[] frame = Send((byte)(0xF0 | (data.Length - 1)), obj, data);
 
@@ -108,9 +108,9 @@ public class PS2000
 
     private double ToVolts(byte high, byte low) => ((high << 8) | low) / 25600.0 * NominalVoltage;
 
-    public string ReadString(byte obj) =>
+    private string ReadString(byte obj) =>
         Encoding.ASCII.GetString(Query(obj, 16)).TrimEnd('\0', ' ');
 
     // l'appareil envoie le float en big-endian, on retourne les octets pour le PC
-    public float ReadFloat(byte obj) => BitConverter.ToSingle(Query(obj, 4).Reverse().ToArray());
+    private float ReadFloat(byte obj) => BitConverter.ToSingle(Query(obj, 4).Reverse().ToArray());
 }
