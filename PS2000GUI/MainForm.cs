@@ -70,11 +70,10 @@ public class MainForm : Form
 
     void Poll()
     {
-        // objet 71 : octet 0 bit 0 = remote, octet 1 bit 0 = output, octets 2-3 = tension en %
-        byte[] d = _dev.Query(71, 6);
-        _remoteOn = (d[0] & 0x01) != 0;
-        _outputOn = (d[1] & 0x01) != 0;
-        _lblActualV.Text = $"Actual voltage: {((d[2] << 8) | d[3]) / 25600.0 * _dev.NominalVoltage:0.00} V";
+        PsuStatus status = _dev.ReadStatus();
+        _remoteOn = status.RemoteOn;
+        _outputOn = status.OutputOn;
+        _lblActualV.Text = $"Actual voltage: {status.ActualVoltage:0.00} V";
         _btnRemote.Text = "Remote: " + (_remoteOn ? "ON" : "OFF");
         _btnOutput.Text = "Output: " + (_outputOn ? "ON" : "OFF");
         UpdateEnabled();
