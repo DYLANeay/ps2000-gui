@@ -38,16 +38,14 @@ public class MainForm : Form
         _btnRemote.Click += (s, e) => Try(() => _dev.SetRemote(!_remoteOn));
         _btnOutput.Click += (s, e) => Try(() => _dev.SetOutput(!_outputOn));
 
-        // les consignes sont en pourcentage du nominal : 25600 = 100 %
         _btnSet.Click += (s, e) => Try(() =>
         {
-            ushort raw = (ushort)((double)_numSetpoint.Value / _dev.NominalVoltage * 25600);
-            _dev.Write(50, [(byte)(raw >> 8), (byte)raw]);
+            _dev.SetVoltage((double)_numSetpoint.Value);
         });
+
         _btnGet.Click += (s, e) => Try(() =>
         {
-            byte[] d = _dev.Query(50, 2);
-            _numSetpoint.Value = (decimal)(((d[0] << 8) | d[1]) / 25600.0 * _dev.NominalVoltage);
+            _numSetpoint.Value = (decimal)_dev.GetVoltageSetpoint();
         });
 
         _timer.Tick += (s, e) => Try(Poll);

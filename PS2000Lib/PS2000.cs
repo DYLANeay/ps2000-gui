@@ -74,6 +74,20 @@ public class PS2000
       Write(54, [0x01, (byte)(on ? 0x01 : 0)]);
     }
     
+    public void SetVoltage(double voltage)
+    {
+        ushort raw = ToRaw(voltage); 
+        Write(50, [(byte)(raw >> 8), (byte)raw]);
+    }
+
+    public double GetVoltageSetpoint(){
+        byte[] d = Query(50, 2);
+        return ToVolts(d[0], d[1]); 
+    }
+    
+    // les consignes sont en pourcentage du nominal : 25600 = 100 %
+    private ushort ToRaw (double voltage) => (ushort)(voltage / NominalVoltage * 25600);
+    private double ToVolts(byte high, byte low) => ((high << 8) | low) / 25600.0 * NominalVoltage;
     
     public string ReadString(byte obj) => Encoding.ASCII.GetString(Query(obj, 16)).TrimEnd('\0', ' ');
 
