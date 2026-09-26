@@ -35,10 +35,8 @@ public class MainForm : Form
                                   _btnRemote, _btnOutput, setpointRow, _lblStatus]);
         Controls.Add(_panel);
 
-        // objet 54 : un octet masque (quel bit on change) puis un octet valeur
-        // 0x10 = remote, 0x01 = output
-        _btnRemote.Click += (s, e) => Try(() => _dev.Write(54, [0x10, (byte)(_remoteOn ? 0 : 0x10)]));
-        _btnOutput.Click += (s, e) => Try(() => _dev.Write(54, [0x01, (byte)(_outputOn ? 0 : 0x01)]));
+        _btnRemote.Click += (s, e) => Try(() => _dev.SetRemote(!_remoteOn));
+        _btnOutput.Click += (s, e) => Try(() => _dev.SetOutput(!_outputOn));
 
         // les consignes sont en pourcentage du nominal : 25600 = 100 %
         _btnSet.Click += (s, e) => Try(() =>

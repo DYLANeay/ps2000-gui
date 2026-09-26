@@ -61,6 +61,20 @@ public class PS2000
             throw new IOException($"Error 0x{frame[3]:X2} writing object {obj}");
     }
 
+    public void SetRemote(bool on)
+    {
+      
+     // objet 54 : un octet masque (quel bit on change) puis un octet valeur
+     // 0x10 = remote, 0x01 = output
+      Write(54, [0x10, (byte) (on ? 0x10 : 0)]);
+     }
+
+    public void SetOutput(bool on)
+    {
+      Write(54, [0x01, (byte)(on ? 0x01 : 0)]);
+    }
+    
+    
     public string ReadString(byte obj) => Encoding.ASCII.GetString(Query(obj, 16)).TrimEnd('\0', ' ');
 
     // l'appareil envoie le float en big-endian, on retourne les octets pour le PC
