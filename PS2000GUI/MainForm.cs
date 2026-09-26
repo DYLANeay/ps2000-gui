@@ -35,21 +35,17 @@ public class MainForm : Form
                                   _btnRemote, _btnOutput, setpointRow, _lblStatus]);
         Controls.Add(_panel);
 
-        // objet 54 : un octet masque (quel bit on change) puis un octet valeur
-        // 0x10 = remote, 0x01 = output
-        _btnRemote.Click += (s, e) => Try(() => _dev.Write(54, [0x10, (byte)(_remoteOn ? 0 : 0x10)]));
-        _btnOutput.Click += (s, e) => Try(() => _dev.Write(54, [0x01, (byte)(_outputOn ? 0 : 0x01)]));
+        _btnRemote.Click += (s, e) => Try(() => _dev.SetRemote(!_remoteOn));
+        _btnOutput.Click += (s, e) => Try(() => _dev.SetOutput(!_outputOn));
 
-        // les consignes sont en pourcentage du nominal : 25600 = 100 %
         _btnSet.Click += (s, e) => Try(() =>
         {
-            ushort raw = (ushort)((double)_numSetpoint.Value / _dev.NominalVoltage * 25600);
-            _dev.Write(50, [(byte)(raw >> 8), (byte)raw]);
+            _dev.SetVoltage((double)_numSetpoint.Value);
         });
+
         _btnGet.Click += (s, e) => Try(() =>
         {
-            byte[] d = _dev.Query(50, 2);
-            _numSetpoint.Value = (decimal)(((d[0] << 8) | d[1]) / 25600.0 * _dev.NominalVoltage);
+            _numSetpoint.Value = (decimal)_dev.GetVoltageSetpoint();
         });
 
         _timer.Tick += (s, e) => Try(Poll);
@@ -62,9 +58,9 @@ public class MainForm : Form
         Try(() =>
         {
             _dev.Connect();
-            _lblType.Text = "Device type: " + _dev.ReadString(0);
-            _lblSerial.Text = "Serial number: " + _dev.ReadString(1);
-            _lblArticle.Text = "Article number: " + _dev.ReadString(6);
+            _lblType.Text = "Device type: " + _dev.DeviceType;
+            _lblSerial.Text = "Serial number: " + _dev.SerialNumber;
+            _lblArticle.Text = "Article number: " + _dev.ArticleNumber;
             _lblMaxV.Text = $"Max voltage: {_dev.NominalVoltage:0.00} V";
             _numSetpoint.Maximum = (decimal)_dev.NominalVoltage;
             _lblStatus.Text = "Connected on COM3";
@@ -74,17 +70,16 @@ public class MainForm : Form
 
     void Poll()
     {
-        // objet 71 : octet 0 bit 0 = remote, octet 1 bit 0 = output, octets 2-3 = tension en %
-        byte[] d = _dev.Query(71, 6);
-        _remoteOn = (d[0] & 0x01) != 0;
-        _outputOn = (d[1] & 0x01) != 0;
-        _lblActualV.Text = $"Actual voltage: {((d[2] << 8) | d[3]) / 25600.0 * _dev.NominalVoltage:0.00} V";
+        PsuStatus status = _dev.ReadStatus();
+        _remoteOn = status.RemoteOn;
+        _outputOn = status.OutputOn;
+        _lblActualV.Text = $"Actual voltage: {status.ActualVoltage:0.00} V";
         _btnRemote.Text = "Remote: " + (_remoteOn ? "ON" : "OFF");
         _btnOutput.Text = "Output: " + (_outputOn ? "ON" : "OFF");
         UpdateEnabled();
     }
 
-    // sans remote l'appareil refuse les écritures (erreur 0x09), donc on grise
+    // sans remote l'appareil refuse les écritures, donc on grise
     void UpdateEnabled() => _btnOutput.Enabled = _btnSet.Enabled = _numSetpoint.Enabled = _remoteOn;
 
     // une erreur série s'affiche en bas au lieu de faire planter l'app
