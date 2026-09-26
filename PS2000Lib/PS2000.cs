@@ -8,12 +8,20 @@ public class PS2000
     SerialPort? _port;
 
     public float NominalVoltage { get; private set; }
+    public string DeviceType { get; private set; } = "";
+    public string SerialNumber { get; private set; } = "";
+    public string ArticleNumber { get; private set; } = "";
 
     public void Connect()
     {
         _port = new SerialPort("COM3", 115200, Parity.None, 8, StopBits.One) { ReadTimeout = 500 };
         _port.Open();
         NominalVoltage = ReadFloat(2); // à lire en premier, toutes les valeurs en % en dépendent
+
+        // objets 0, 1, 6 : chaînes ASCII de 16 octets, fixes pour l'appareil, lues une seule fois
+        DeviceType = ReadString(0);
+        SerialNumber = ReadString(1);
+        ArticleNumber = ReadString(6);
     }
 
     byte[] Send(byte sd, byte obj, byte[] data)

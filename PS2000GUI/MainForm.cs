@@ -58,9 +58,9 @@ public class MainForm : Form
         Try(() =>
         {
             _dev.Connect();
-            _lblType.Text = "Device type: " + _dev.ReadString(0);
-            _lblSerial.Text = "Serial number: " + _dev.ReadString(1);
-            _lblArticle.Text = "Article number: " + _dev.ReadString(6);
+            _lblType.Text = "Device type: " + _dev.DeviceType;
+            _lblSerial.Text = "Serial number: " + _dev.SerialNumber;
+            _lblArticle.Text = "Article number: " + _dev.ArticleNumber;
             _lblMaxV.Text = $"Max voltage: {_dev.NominalVoltage:0.00} V";
             _numSetpoint.Maximum = (decimal)_dev.NominalVoltage;
             _lblStatus.Text = "Connected on COM3";
