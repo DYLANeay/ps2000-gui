@@ -1,5 +1,3 @@
-using PS2000Lib;
-
 using System.Globalization;
 using System.Text;
 
@@ -10,8 +8,6 @@ namespace PS2000GUI;
 
 public class MainForm : Form
 {
-    readonly IPowerSupply _powerSupply = PowerSupplyFactory.ConnectOrDummy();
-    readonly System.Windows.Forms.Timer _timer = new() { Interval = 500 };
     readonly FlowLayoutPanel _panel = new()
     {
         FlowDirection = FlowDirection.TopDown,
@@ -31,7 +27,7 @@ public class MainForm : Form
     readonly Label _lblArticle = new() { AutoSize = true };
     readonly Label _lblMaxV = new() { AutoSize = true };
     readonly Label _lblActualV = new() { AutoSize = true };
-    readonly Label _lblStatus = new() { AutoSize = true };
+    readonly Label _lblStatus = new() { AutoSize = true, Text = "Not connected" };
     readonly Button _btnRemote = new() { AutoSize = true, Text = "Remote: ?" };
     readonly Button _btnOutput = new() { AutoSize = true, Text = "Output: ?" };
     readonly NumericUpDown _numSetpoint = new()
@@ -102,23 +98,7 @@ public class MainForm : Form
 
         _btnConnect.Click += (s, e) => Try(ConnectBroker);
 
-        _timer.Tick += (s, e) => Try(Poll);
         UpdateEnabled();
-    }
-
-    protected override void OnLoad(EventArgs e)
-    {
-        base.OnLoad(e);
-        Try(() =>
-        {
-            _lblType.Text = "Device type: " + _powerSupply.DeviceType;
-            _lblSerial.Text = "Serial number: " + _powerSupply.SerialNumber;
-            _lblArticle.Text = "Article number: " + _powerSupply.ArticleNumber;
-            _lblMaxV.Text = $"Max voltage: {_powerSupply.NominalVoltage:0.00} V";
-            _numSetpoint.Maximum = (decimal)_powerSupply.NominalVoltage;
-            _lblStatus.Text = "Connected on " + _powerSupply.PortName;
-            _timer.Start();
-        });
     }
 
     // même enchaînement que btnConnect_Click + btnSubscribe_Click dans l'exemple du prof
@@ -130,7 +110,6 @@ public class MainForm : Form
         _client.MqttMsgPublishReceived += OnMessage;
         _client.Connect(Guid.NewGuid().ToString());
         _client.Subscribe(new string[] { _prefix + "#" }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
-        _timer.Stop(); // l'état arrive maintenant par MQTT, plus besoin de poller l'alim
         _lblStatus.Text = "Connected to broker " + _txtBroker.Text;
     }
 
@@ -197,21 +176,10 @@ public class MainForm : Form
         base.OnFormClosing(e);
     }
 
-    void Poll()
-    {
-        PsuStatus status = _powerSupply.ReadStatus();
-        _remoteOn = status.RemoteOn;
-        _outputOn = status.OutputOn;
-        _lblActualV.Text = $"Actual voltage: {status.ActualVoltage:0.00} V";
-        _btnRemote.Text = "Remote: " + (_remoteOn ? "ON" : "OFF");
-        _btnOutput.Text = "Output: " + (_outputOn ? "ON" : "OFF");
-        UpdateEnabled();
-    }
-
     // sans remote l'appareil refuse les écritures, donc on grise
     void UpdateEnabled() => _btnOutput.Enabled = _btnSet.Enabled = _numSetpoint.Enabled = _remoteOn;
 
-    // une erreur série s'affiche en bas au lieu de faire planter l'app
+    // une erreur (broker injoignable, saisie invalide...) s'affiche en bas au lieu de faire planter l'app
     void Try(Action action)
     {
         try
