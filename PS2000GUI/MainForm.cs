@@ -97,6 +97,8 @@ public class MainForm : Form
                 _numSetpoint.Value = (decimal)_powerSupply.GetVoltageSetpoint();
             });
 
+        _btnConnect.Click += (s, e) => Try(ConnectBroker);
+
         _timer.Tick += (s, e) => Try(Poll);
         UpdateEnabled();
     }
@@ -114,6 +116,70 @@ public class MainForm : Form
             _lblStatus.Text = "Connected on " + _powerSupply.PortName;
             _timer.Start();
         });
+    }
+
+    // même enchaînement que btnConnect_Click + btnSubscribe_Click dans l'exemple du prof
+    void ConnectBroker()
+    {
+        _prefix = $"/PSU/PSU2000/{_txtPsuId.Text}/";
+        _client = new MqttClient(_txtBroker.Text);
+        // handler branché avant Subscribe : les messages retained arrivent dès l'abonnement
+        _client.MqttMsgPublishReceived += OnMessage;
+        _client.Connect(Guid.NewGuid().ToString());
+        _client.Subscribe(new string[] { _prefix + "#" }, new byte[] { MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE });
+        _timer.Stop(); // l'état arrive maintenant par MQTT, plus besoin de poller l'alim
+        _lblStatus.Text = "Connected to broker " + _txtBroker.Text;
+    }
+
+    // appelé par un thread de M2Mqtt : on repasse sur le thread UI avant de toucher aux contrôles
+    void OnMessage(object sender, MqttMsgPublishEventArgs e)
+    {
+        string topic = e.Topic.Substring(_prefix.Length); // ex. "status/voltage"
+        string payload = Encoding.UTF8.GetString(e.Message); // ex. "12.50"
+        Invoke((MethodInvoker)(() => ShowMessage(topic, payload)));
+    }
+
+    // les cmd/* qu'on reçoit aussi (abonné à #) et status/setpoint ne tombent dans aucun case
+    void ShowMessage(string topic, string payload)
+    {
+        switch (topic)
+        {
+            case "info/type":
+                _lblType.Text = "Device type: " + payload;
+                break;
+            case "info/serial":
+                _lblSerial.Text = "Serial number: " + payload;
+                break;
+            case "info/article":
+                _lblArticle.Text = "Article number: " + payload;
+                break;
+            case "info/nominal":
+                _lblMaxV.Text = $"Max voltage: {payload} V";
+                _numSetpoint.Maximum = decimal.Parse(payload, CultureInfo.InvariantCulture);
+                break;
+            case "status/voltage":
+                _lblActualV.Text = $"Actual voltage: {payload} V";
+                break;
+            case "status/remote":
+                _remoteOn = payload == "ON";
+                _btnRemote.Text = "Remote: " + payload;
+                break;
+            case "status/output":
+                _outputOn = payload == "ON";
+                _btnOutput.Text = "Output: " + payload;
+                break;
+            case "error":
+                _lblStatus.Text = payload;
+                break;
+        }
+        UpdateEnabled();
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // sans Disconnect les threads de M2Mqtt gardent le processus en vie
+        _client?.Disconnect();
+        base.OnFormClosing(e);
     }
 
     void Poll()
