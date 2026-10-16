@@ -4,7 +4,7 @@ namespace PS2000GUI;
 
 public class MainForm : Form
 {
-    readonly IPowerSupply _powerSupply = PowerSupplyFactory.Create();
+    readonly IPowerSupply _powerSupply = PowerSupplyFactory.ConnectOrDummy();
     readonly System.Windows.Forms.Timer _timer = new() { Interval = 500 };
     readonly FlowLayoutPanel _panel = new()
     {
@@ -84,7 +84,6 @@ public class MainForm : Form
         base.OnLoad(e);
         Try(() =>
         {
-            _powerSupply.Connect();
             _lblType.Text = "Device type: " + _powerSupply.DeviceType;
             _lblSerial.Text = "Serial number: " + _powerSupply.SerialNumber;
             _lblArticle.Text = "Article number: " + _powerSupply.ArticleNumber;
