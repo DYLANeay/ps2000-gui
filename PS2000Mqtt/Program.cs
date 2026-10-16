@@ -24,7 +24,17 @@ Pub("info/article", psu.ArticleNumber, true);
 Pub("info/nominal", psu.NominalVoltage.ToString("0.00", CultureInfo.InvariantCulture), true);
 
 Console.WriteLine($"Publishing on {prefix} - press Enter to quit");
-Console.ReadLine();
+while (!Console.KeyAvailable) //jusqu'à ce que l'utilisateur appuie sur une touche
+{
+    // lecture de l'état de l'alim
+    PsuStatus status = psu.ReadStatus();
+    Pub("status/remote", status.RemoteOn ? "ON" : "OFF", true);
+    Pub("status/output", status.OutputOn ? "ON" : "OFF", true);
+    Pub("status/voltage", status.ActualVoltage.ToString("0.00", CultureInfo.InvariantCulture), true);
+    Pub("status/setpoint", psu.GetVoltageSetpoint().ToString("0.00", CultureInfo.InvariantCulture), true);
+    Thread.Sleep(1000);
+}
+
 
 client.Disconnect();
 
