@@ -24,6 +24,7 @@ public class MainForm : Form
     readonly Button _btnConnect = new() { AutoSize = true, Text = "Connect" };
     MqttClient? _client;
     string _prefix = "";
+    string _lastSetpoint = "0";
 
     readonly Label _lblType = new() { AutoSize = true };
     readonly Label _lblSerial = new() { AutoSize = true };
@@ -82,19 +83,21 @@ public class MainForm : Form
         ]);
         Controls.Add(_panel);
 
-        _btnRemote.Click += (s, e) => Try(() => _powerSupply.SetRemote(!_remoteOn));
-        _btnOutput.Click += (s, e) => Try(() => _powerSupply.SetOutput(!_outputOn));
+        // les boutons basculent l'état actuel ; l'affichage change quand le PSU republie son status
+        _btnRemote.Click += (s, e) => Try(() => SendCommand("cmd/remote", _remoteOn ? "OFF" : "ON"));
+        _btnOutput.Click += (s, e) => Try(() => SendCommand("cmd/output", _outputOn ? "OFF" : "ON"));
 
         _btnSet.Click += (s, e) =>
             Try(() =>
             {
-                _powerSupply.SetVoltage((double)_numSetpoint.Value);
+                SendCommand("cmd/voltage", _numSetpoint.Value.ToString(CultureInfo.InvariantCulture));
             });
 
+        // plus d'alim à interroger : on reprend la dernière consigne reçue sur status/setpoint
         _btnGet.Click += (s, e) =>
             Try(() =>
             {
-                _numSetpoint.Value = (decimal)_powerSupply.GetVoltageSetpoint();
+                _numSetpoint.Value = decimal.Parse(_lastSetpoint, CultureInfo.InvariantCulture);
             });
 
         _btnConnect.Click += (s, e) => Try(ConnectBroker);
@@ -131,6 +134,15 @@ public class MainForm : Form
         _lblStatus.Text = "Connected to broker " + _txtBroker.Text;
     }
 
+    // une commande n'est jamais retained, sinon le broker la rejouerait au redémarrage du PSU
+    void SendCommand(string command, string payload)
+    {
+        if (_client == null)
+            throw new InvalidOperationException("Not connected to the broker");
+        _client.Publish(_prefix + command, Encoding.UTF8.GetBytes(payload), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, false);
+        _lblStatus.Text = ""; // une nouvelle commande part : on efface l'ancienne erreur
+    }
+
     // appelé par un thread de M2Mqtt : on repasse sur le thread UI avant de toucher aux contrôles
     void OnMessage(object sender, MqttMsgPublishEventArgs e)
     {
@@ -139,7 +151,7 @@ public class MainForm : Form
         Invoke((MethodInvoker)(() => ShowMessage(topic, payload)));
     }
 
-    // les cmd/* qu'on reçoit aussi (abonné à #) et status/setpoint ne tombent dans aucun case
+    // les cmd/* qu'on reçoit aussi (abonné à #) ne tombent dans aucun case
     void ShowMessage(string topic, string payload)
     {
         switch (topic)
@@ -167,6 +179,9 @@ public class MainForm : Form
             case "status/output":
                 _outputOn = payload == "ON";
                 _btnOutput.Text = "Output: " + payload;
+                break;
+            case "status/setpoint":
+                _lastSetpoint = payload;
                 break;
             case "error":
                 _lblStatus.Text = payload;
