@@ -1,5 +1,11 @@
 using PS2000Lib;
 
+using System.Globalization;
+using System.Text;
+
+using uPLibrary.Networking.M2Mqtt;
+using uPLibrary.Networking.M2Mqtt.Messages;
+
 namespace PS2000GUI;
 
 public class MainForm : Form
@@ -12,6 +18,12 @@ public class MainForm : Form
         AutoSize = true,
         Padding = new Padding(10),
     };
+
+    readonly TextBox _txtBroker = new() { Text = "127.0.0.1", Width = 100 };
+    readonly TextBox _txtPsuId = new() { Text = "DUMMY001", Width = 100 };
+    readonly Button _btnConnect = new() { AutoSize = true, Text = "Connect" };
+    MqttClient? _client;
+    string _prefix = "";
 
     readonly Label _lblType = new() { AutoSize = true };
     readonly Label _lblSerial = new() { AutoSize = true };
@@ -39,6 +51,15 @@ public class MainForm : Form
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
 
+        var connectRow = new FlowLayoutPanel { AutoSize = true };
+        connectRow.Controls.AddRange([
+            new Label { Text = "Broker:", AutoSize = true },
+            _txtBroker,
+            new Label { Text = "PSU ID:", AutoSize = true },
+            _txtPsuId,
+            _btnConnect,
+        ]);
+
         var setpointRow = new FlowLayoutPanel { AutoSize = true };
         setpointRow.Controls.AddRange([
             new Label { Text = "Setpoint (V):", AutoSize = true },
@@ -48,6 +69,7 @@ public class MainForm : Form
         ]);
 
         _panel.Controls.AddRange([
+            connectRow,
             _lblType,
             _lblSerial,
             _lblArticle,
