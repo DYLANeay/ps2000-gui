@@ -49,6 +49,10 @@ internal class PS2000 : IPowerSupply
 
     private byte[] Send(byte sd, byte obj, byte[] data)
     {
+        // Connect() a échoué ou n'a pas été appelé : message clair plutôt qu'une NullReferenceException
+        if (_port == null)
+            throw new IOException("Not connected to a PS2000");
+
         // trame : SD, DN (toujours 0), OBJ, DATA, puis la somme des octets sur 2 octets (poids fort d'abord)
         byte[] telegram = [sd, 0, obj, .. data, 0, 0];
         int checksum = telegram.Sum(b => (int)b);
@@ -56,7 +60,7 @@ internal class PS2000 : IPowerSupply
         telegram[lastIndex - 1] = (byte)(checksum >> 8); // poids fort
         telegram[lastIndex] = (byte)checksum; // poids faible
 
-        _port!.DiscardInBuffer();
+        _port.DiscardInBuffer();
         _port.Write(telegram, 0, telegram.Length);
 
         // les 4 bits bas du SD de la réponse donnent la longueur des données moins 1
